@@ -4,7 +4,9 @@ WITH t1 AS
 
 (SELECT product_id FROM products
 
-ORDER BY price DESC LIMIT 5), 
+ORDER BY price DESC 
+
+LIMIT 5), 
 
 t2 AS (SELECT order_id, unnest(product_ids) AS prod_id FROM orders), 
 
@@ -32,56 +34,69 @@ ORDER BY user_id
 
 ### ОБЪДИНЕНИЕ ТАБЛИЦ (JOIN)
 
-with t1 as (SELECT order_id,
-                   unnest(product_ids) as product_id
-            FROM   orders)
-SELECT t1.order_id,
-       array_agg(p.name) as product_names
-FROM   t1 join products p
-        ON t1.product_id = p.product_id
-GROUP BY t1.order_id limit 1000
+WITH t1 AS (SELECT order_id, unnest(product_ids) AS product_id FROM orders)
+
+SELECT t1.order_id, ARRAY_AGG(p.name) AS product_names
+
+FROM t1 JOIN products p ON t1.product_id = p.product_id
+
+GROUP BY t1.order_id
+
+LIMIT 1000
 
 ------------------------------
 
-with t1 as (SELECT max(array_length(product_ids, 1)) as m_order
-            FROM   orders), t2 as (SELECT max(time) as m_time
-                       FROM   user_actions)
-SELECT orders.order_id,
-       users.user_id,
-       date_part('year', age((SELECT m_time
-                       FROM   t2), users.birth_date)) as user_age, couriers.courier_id, date_part('year', age((SELECT m_time
-                                                                                        FROM   t2), couriers.birth_date)) as courier_age
-FROM   orders join courier_actions
-        ON orders.order_id = courier_actions.order_id and
-           courier_actions.action like '%deliv%' join couriers
-        ON courier_actions.courier_id = couriers.courier_id join user_actions
-        ON orders.order_id = user_actions.order_id and
-           user_actions.action like '%create%' join users
-        ON user_actions.user_id = users.user_id
-WHERE  array_length(orders.product_ids, 1) = (SELECT m_order
-                                              FROM   t1)
+WITH 
+
+t1 AS (SELECT MAX(ARRAY_LENGTH(product_ids, 1)) AS m_order FROM orders), 
+
+t2 AS (SELECT MAX(time) AS m_time FROM user_actions)
+
+SELECT orders.order_id, users.user_id, 
+
+DATE_PART('year', age((SELECT m_time FROM t2), users.birth_date)) AS user_age, couriers.courier_id, 
+
+DATE_PART('year', age((SELECT m_time FROM t2), couriers.birth_date)) AS courier_age
+
+FROM orders 
+
+JOIN courier_actions ON orders.order_id = courier_actions.order_id AND courier_actions.action LIKE '%deliv%' 
+
+JOIN couriers ON courier_actions.courier_id = couriers.courier_id 
+
+JOIN user_actions ON orders.order_id = user_actions.order_id AND user_actions.action LIKE '%create%' 
+
+JOIN users ON user_actions.user_id = users.user_id
+
+WHERE ARRAY_LENGTH(orders.product_ids, 1) = (SELECT m_order FROM   t1)
+
 ORDER BY orders.order_id
 
 ------------------------------
 
-with t1 as (SELECT order_id
-            FROM   user_actions
-            WHERE  action = 'cancel_order'), t2 as (SELECT order_id,
-                                               unnest(product_ids) as product_id
-                                        FROM   orders
-                                        WHERE  order_id not in (SELECT order_id
-                                                                FROM   t1)), t3 as (SELECT t2.order_id,
-                           products.name
-                    FROM   t2 join products
-                            ON t2.product_id = products.product_id)
-SELECT array[p1.name,
-       p2.name] as pair,
-       count(distinct p1.order_id) as count_pair
-FROM   t3 as p1 join t3 as p2
-        ON p1.order_id = p2.order_id and
-           p1.name < p2.name
+WITH t1 AS 
+
+(SELECT order_id FROM user_actions
+
+WHERE action = 'cancel_order'), 
+
+t2 AS 
+
+(SELECT order_id, unnest(product_ids) AS product_id FROM orders
+
+WHERE order_id NOT IN (SELECT order_id FROM t1)), 
+
+t3 AS 
+
+(SELECT t2.order_id, products.name FROM t2 JOIN products ON t2.product_id = products.product_id)
+
+SELECT ARRAY[p1.name, p2.name] AS pair, COUNT(DISTINCT p1.order_id) AS count_pair
+
+FROM t3 AS p1.order_id = p2.order_id AND p1.name < p2.name
+
 GROUP BY p1.name, p2.name
-ORDER BY count_pair desc, pair
+
+ORDER BY count_pair DESC, pair
 
 ### ОКОННЫЕ ФУНКЦИИ
 
