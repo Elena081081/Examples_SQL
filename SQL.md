@@ -100,24 +100,27 @@ ORDER BY count_pair DESC, pair
 
 ### ОКОННЫЕ ФУНКЦИИ
 
-with t2 as (SELECT DISTINCT order_id,
-                            creation_time,
-                            sum(price) OVER(PARTITION BY order_id) as order_price,
-                            sum(price) OVER(PARTITION BY creation_time::date) as daily_revenue
-            FROM   (SELECT order_id,
-                           creation_time,
-                           unnest(product_ids) as product_id
-                    FROM   orders) t1 join products p using(product_id)
-            WHERE  order_id not in (SELECT order_id
-                                    FROM   user_actions
-                                    WHERE  action like '%cancel%'))
-SELECT order_id,
-       creation_time,
-       order_price,
-       daily_revenue,
-       round(order_price/daily_revenue*100, 3) as percentage_of_daily_revenue
-FROM   t2
-ORDER BY date_trunc('day', creation_time) desc, percentage_of_daily_revenue desc, order_id
+WITH t2 AS 
+
+(SELECT DISTINCT order_id, creation_time,
+
+SUM(price) OVER(PARTITION BY order_id) AS order_price,
+
+SUM(price) OVER(PARTITION BY creation_time::DATE) AS daily_revenue
+            
+FROM 
+
+(SELECT order_id, creation_time, unnest(product_ids) AS product_id FROM orders) t1 
+
+JOIN products p USING(product_id)
+            
+WHERE order_id NOT IN (SELECT order_id FROM user_actions WHERE action LIKE '%cancel%'))
+
+SELECT order_id, creation_time, order_price, daily_revenue,
+       
+ROUND(order_price/daily_revenue * 100, 3) AS percentage_of_daily_revenue FROM t2
+
+ORDER BY DATE_TRUNC('day', creation_time) DESC, percentage_of_daily_revenue DESC, order_id
 
 ------------------------------
 
