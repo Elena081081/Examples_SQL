@@ -124,22 +124,25 @@ ORDER BY DATE_TRUNC('day', creation_time) DESC, percentage_of_daily_revenue DESC
 
 ------------------------------
 
-with t as (SELECT DISTINCT creation_time::date as date,
-                           sum(price) OVER(PARTITION BY creation_time::date) as daily_revenue
-           FROM   (SELECT creation_time,
-                          order_id,
-                          unnest(product_ids) as product_id
-                   FROM   orders) t1 join products using(product_id)
-           WHERE  order_id not in (SELECT order_id
-                                   FROM   user_actions
-                                   WHERE  action like '%cancel%'))
-SELECT date,
-       daily_revenue,
-       coalesce(daily_revenue - lag(daily_revenue, 1) OVER(ORDER BY date),
-                0) as revenue_growth_abs,
-       coalesce(round(daily_revenue*100/lag(daily_revenue, 1) OVER(ORDER BY date) - 100, 1),
-                0) as revenue_growth_percentage
-FROM   t
+WITH t AS 
+
+(SELECT DISTINCT creation_time::DATE AS date,
+
+SUM(price) OVER(PARTITION BY creation_time::DATE) AS daily_revenue 
+
+FROM (SELECT creation_time, order_id, unnest(product_ids) AS product_id FROM orders) t1 
+
+JOIN products USING(product_id)
+
+WHERE order_id NOT IN (SELECT order_id FROM user_actions WHERE action LIKE '%cancel%'))
+
+SELECT date, daily_revenue,
+
+COALESCE(daily_revenue - LAG(daily_revenue, 1) OVER(ORDER BY date), 0) AS revenue_growth_abs,
+
+COALESCE(ROUND(daily_revenue * 100/LAG(daily_revenue, 1) OVER(ORDER BY date) - 100, 1), 0) AS revenue_growth_percentage
+
+FROM t
 
 ------------------------------
 
