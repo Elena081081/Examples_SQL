@@ -1,34 +1,33 @@
 ### ПОДЗАПРОСЫ
 
-with t1 as 
+WITH t1 AS 
 
 (SELECT product_id FROM products
 
-ORDER BY price desc limit 5), 
+ORDER BY price DESC LIMIT 5), 
 
-t2 as (SELECT order_id, unnest(product_ids) as prod_id FROM   orders), 
+t2 AS (SELECT order_id, unnest(product_ids) AS prod_id FROM orders), 
 
-t3 as (SELECT order_id FROM t2
+t3 AS (SELECT order_id FROM t2
 
-WHERE  prod_id in (SELECT product_id FROM   t1))
+WHERE prod_id IN (SELECT product_id FROM t1))
 
 SELECT order_id, product_ids FROM orders
 
-WHERE order_id in (SELECT order_id FROM t3)
+WHERE order_id IN (SELECT order_id FROM t3)
 
 ORDER BY order_id
 
 ------------------------------
 
-with avg_age as (SELECT date_part('year', avg(age((SELECT max(time)
-                                                                    FROM   user_actions), birth_date))) as age_user
-                 FROM   users)
-SELECT user_id,
-       coalesce(date_part('year', age_user), (SELECT*FROM avg_age)) as age
-FROM   (SELECT user_id,
-               age((SELECT max(time)
-             FROM   user_actions), birth_date) as age_user
-        FROM   users) t
+WITH avg_age AS 
+
+(SELECT DATE_PART('year', AVG(age((SELECT MAX(time) FROM user_actions), birth_date))) AS age_user FROM users)
+
+SELECT user_id, COALESCE(DATE_PART('year', age_user), (SELECT * FROM avg_age)) AS age
+
+FROM (SELECT user_id, age((SELECT MAX(time) FROM user_actions), birth_date) AS age_user FROM users) t
+
 ORDER BY user_id
 
 ### ОБЪДИНЕНИЕ ТАБЛИЦ (JOIN)
