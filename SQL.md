@@ -8,7 +8,7 @@ ORDER BY price DESC
 
 LIMIT 5), 
 
-t2 AS (SELECT order_id, unnest(product_ids) AS prod_id FROM orders), 
+t2 AS (SELECT order_id, UNNEST(product_ids) AS prod_id FROM orders), 
 
 t3 AS (SELECT order_id FROM t2
 
@@ -34,7 +34,7 @@ ORDER BY user_id
 
 ### ОБЪДИНЕНИЕ ТАБЛИЦ (JOIN)
 
-WITH t1 AS (SELECT order_id, unnest(product_ids) AS product_id FROM orders)
+WITH t1 AS (SELECT order_id, UNNEST(product_ids) AS product_id FROM orders)
 
 SELECT t1.order_id, ARRAY_AGG(p.name) AS product_names
 
@@ -82,7 +82,7 @@ WHERE action = 'cancel_order'),
 
 t2 AS 
 
-(SELECT order_id, unnest(product_ids) AS product_id FROM orders
+(SELECT order_id, UNNEST(product_ids) AS product_id FROM orders
 
 WHERE order_id NOT IN (SELECT order_id FROM t1)), 
 
@@ -110,7 +110,7 @@ SUM(price) OVER(PARTITION BY creation_time::DATE) AS daily_revenue
             
 FROM 
 
-(SELECT order_id, creation_time, unnest(product_ids) AS product_id FROM orders) t1 
+(SELECT order_id, creation_time, UNNEST(product_ids) AS product_id FROM orders) t1 
 
 JOIN products p USING(product_id)
             
@@ -130,7 +130,7 @@ WITH t AS
 
 SUM(price) OVER(PARTITION BY creation_time::DATE) AS daily_revenue 
 
-FROM (SELECT creation_time, order_id, unnest(product_ids) AS product_id FROM orders) t1 
+FROM (SELECT creation_time, order_id, UNNEST(product_ids) AS product_id FROM orders) t1 
 
 JOIN products USING(product_id)
 
@@ -146,15 +146,26 @@ FROM t
 
 ------------------------------
 
-WITH main_table AS 
+WITH main_table AS
+
 (SELECT order_price, ROW_NUMBER() OVER (ORDER BY order_price) AS row_number, 
-COUNT(*) OVER() AS total_rows 
-FROM (SELECT SUM(price) AS order_price 
+
+COUNT( * ) OVER() AS total_rows
+
+FROM (SELECT SUM(price) AS order_price
+
 FROM (SELECT order_id, product_ids, UNNEST(product_ids) AS product_id 
+
 FROM orders 
-WHERE order_id NOT IN 
-(SELECT order_id FROM user_actions WHERE action='cancel_order') ) t3 
-LEFT JOIN products USING(product_id) 
-GROUP BY order_id ) t1 ) 
-SELECT AVG(order_price) AS median_price FROM main_table 
+
+WHERE order_id NOT IN
+
+(SELECT order_id FROM user_actions WHERE action='cancel_order')) t3
+
+LEFT JOIN products USING(product_id)
+
+GROUP BY order_id ) t1)
+
+SELECT AVG(order_price) AS median_price FROM main_table
+
 WHERE row_number BETWEEN total_rows/2.0 AND total_rows/2.0 + 1
