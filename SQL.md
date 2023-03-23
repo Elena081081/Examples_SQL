@@ -92,7 +92,7 @@ t3 AS
 
 SELECT ARRAY[p1.name, p2.name] AS pair, COUNT(DISTINCT p1.order_id) AS count_pair
 
-FROM t3 AS p1.order_id = p2.order_id AND p1.name < p2.name
+FROM t3 AS p1 JOIN t3 AS p2 ON p1.order_id = p2.order_id AND p1.name < p2.name
 
 GROUP BY p1.name, p2.name
 
